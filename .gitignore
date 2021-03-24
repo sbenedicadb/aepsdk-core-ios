@@ -94,3 +94,7 @@ iOSInjectionProject/
 *.log
 
 Pods/
+
+AEPIntegrationTests/resources/rules_lifecycle.zip
+AEPIntegrationTests/resources/rules_pii.zip
+AEPIntegrationTests/resources/rules_signal.zip

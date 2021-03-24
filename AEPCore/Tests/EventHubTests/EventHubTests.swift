@@ -1186,12 +1186,12 @@ class EventHubTests: XCTestCase {
         let analyticsRequestContentExpectation = XCTestExpectation(description: "Received hub shared state event")
         analyticsRequestContentExpectation.assertForOverFulfill = true
 
-        eventHub.registerPreprocessor { event in
+        eventHub.registerPreprocessor ({ event in
             if event.type == EventType.target, event.source == EventSource.requestContent {
                 return Event(name: "event", type: EventType.analytics, source: EventSource.requestContent, data: nil)
             }
             return event
-        }
+        }, priority: .highest)
         eventHub.start()
 
         eventHub.getExtensionContainer(MockExtension.self)?.registerListener(type: EventType.target, source: EventSource.requestContent) { _ in
@@ -1206,6 +1206,127 @@ class EventHubTests: XCTestCase {
 
         // verify
         wait(for: [targetRequestContentExpectation, analyticsRequestContentExpectation], timeout: 1)
+    }
+
+    /// tests that multiple preprocessors with the same priority will be called
+    func testMultiplePreprocessorsWithSamePriority() {
+        // setup
+        let firstExpectation = XCTestExpectation(description: "Event should have data from first preprocessor")
+        let secondExpectation = XCTestExpectation(description: "Event should have data from second preprocessor")
+
+        let firstPreprocessor: EventPreprocessor = { event in
+            event.data!["firstKey"] = "firstValue"
+            return event
+        }
+
+        let secondPreprocessor: EventPreprocessor = { event in
+            event.data!["secondKey"] = "secondValue"
+            return event
+        }
+
+        eventHub.registerPreprocessor(firstPreprocessor, priority: .highest)
+        eventHub.registerPreprocessor(secondPreprocessor, priority: .highest)
+
+        eventHub.start()
+
+        eventHub.getExtensionContainer(MockExtension.self)?.registerListener(type: EventType.target, source: EventSource.requestContent) { event in
+            if let firstValue = event.data?["firstKey"] {
+                firstExpectation.fulfill()
+                XCTAssertEqual("firstValue", firstValue as? String)
+            }
+            if let secondValue = event.data?["secondKey"] {
+                secondExpectation.fulfill()
+                XCTAssertEqual("secondValue", secondValue as? String)
+            }
+        }
+
+        // test
+        eventHub.dispatch(event: Event(name: "event", type: EventType.target, source: EventSource.requestContent, data: [:]))
+
+        // verify
+        wait(for: [firstExpectation, secondExpectation], timeout: 1)
+    }
+
+    /// tests that preprocessors with all kinds of priority are called in order
+    func testPreprocessorsWithAllPriorities() {
+        // setup
+        let firstExpectation = XCTestExpectation(description: "First preprocessor should run first")
+        let secondExpectation = XCTestExpectation(description: "Second preprocessor should run second")
+        let thirdExpectation = XCTestExpectation(description: "Third preprocessor should run third")
+        let fourthExpectation = XCTestExpectation(description: "Fourth preprocessor should run fourth")
+        let fifthExpectation = XCTestExpectation(description: "Fifth preprocessor should run fifth")
+
+        let firstPreprocessor: EventPreprocessor = { event in
+            event.data!["firstKey"] = "firstValue"
+            event.data!["commonKey"] = "1"
+            return event
+        }
+
+        let secondPreprocessor: EventPreprocessor = { event in
+            event.data!["secondKey"] = "secondValue"
+            event.data!["commonKey"] = "2"
+            return event
+        }
+
+        let thirdPreprocessor: EventPreprocessor = { event in
+            event.data!["thirdKey"] = "thirdValue"
+            event.data!["commonKey"] = "3"
+            return event
+        }
+
+        let fourthPreprocessor: EventPreprocessor = { event in
+            event.data!["fourthKey"] = "fourthValue"
+            event.data!["commonKey"] = "4"
+            return event
+        }
+
+        let fifthPreprocessor: EventPreprocessor = { event in
+            event.data!["fifthKey"] = "fifthValue"
+            event.data!["commonKey"] = "5"
+            return event
+        }
+
+        eventHub.registerPreprocessor(firstPreprocessor, priority: .highest)
+        eventHub.registerPreprocessor(secondPreprocessor, priority: .high)
+        eventHub.registerPreprocessor(thirdPreprocessor, priority: .normal)
+        eventHub.registerPreprocessor(fourthPreprocessor, priority: .low)
+        eventHub.registerPreprocessor(fifthPreprocessor, priority: .lowest)
+
+        eventHub.start()
+
+        eventHub.getExtensionContainer(MockExtension.self)?.registerListener(type: EventType.target, source: EventSource.requestContent) { event in
+            if let firstValue = event.data?["firstKey"] {
+                firstExpectation.fulfill()
+                XCTAssertEqual("firstValue", firstValue as? String)
+            }
+            if let secondValue = event.data?["secondKey"] {
+                secondExpectation.fulfill()
+                XCTAssertEqual("secondValue", secondValue as? String)
+            }
+            if let thirdValue = event.data?["thirdKey"] {
+                thirdExpectation.fulfill()
+                XCTAssertEqual("thirdValue", thirdValue as? String)
+            }
+            if let fourthValue = event.data?["fourthKey"] {
+                fourthExpectation.fulfill()
+                XCTAssertEqual("fourthValue", fourthValue as? String)
+            }
+            if let fifthValue = event.data?["fifthKey"] {
+                fifthExpectation.fulfill()
+                XCTAssertEqual("fifthValue", fifthValue as? String)
+            }
+            if let commonValue = event.data?["commonKey"] {
+                XCTAssertEqual("5", commonValue as? String)
+            } else {
+                XCTFail("commonKey should be in the event data")
+            }
+        }
+
+        // test
+        eventHub.dispatch(event: Event(name: "event", type: EventType.target, source: EventSource.requestContent, data: [:]))
+
+        // verify
+        wait(for: [firstExpectation, secondExpectation, thirdExpectation, fourthExpectation, fifthExpectation], timeout: 1)
     }
 
     // MARK: XDM SharedState Tests

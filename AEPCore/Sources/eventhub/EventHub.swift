@@ -28,7 +28,7 @@ final class EventHub {
     private let responseEventListeners = ThreadSafeArray<EventListenerContainer>(identifier: "com.adobe.eventHub.response.queue")
     private var eventNumberCounter = AtomicCounter()
     private let eventQueue = OperationOrderer<Event>("EventHub")
-    private var preprocessors = ThreadSafeArray<EventPreprocessor>(identifier: "com.adobe.eventHub.preprocessors.queue")
+    private var preprocessors = ThreadSafeDictionary<EventPreprocessorPriority, [EventPreprocessor]>(identifier: "com.adobe.eventHub.preprocessors.queue")
 
     #if DEBUG
         public internal(set) static var shared = EventHub()
@@ -46,9 +46,8 @@ final class EventHub {
         // Setup eventQueue handler for the main OperationOrderer
         eventQueue.setHandler { (event) -> Bool in
 
-            let processedEvent = self.preprocessors.shallowCopy.reduce(event) { event, preprocessor in
-                preprocessor(event)
-            }
+            // pre-process events in priority order
+            let processedEvent = self.preprocessEvent(event)
 
             // Handle response event listeners first
             if let responseID = processedEvent.responseID {
@@ -249,10 +248,13 @@ final class EventHub {
         return registeredExtensions[type.typeName]
     }
 
-    /// Register a event preprocessor
+    /// Register an event preprocessor for the provided priority
     /// - Parameter preprocessor: The `EventPreprocessor`
-    func registerPreprocessor(_ preprocessor: @escaping EventPreprocessor) {
-        preprocessors.append(preprocessor)
+    /// - Parameter priority: The `EventPreprocessorPriority` for this preprocessor
+    func registerPreprocessor(_ preprocessor: @escaping EventPreprocessor, priority: EventPreprocessorPriority) {
+        var preprocessorsForThisPriority: [EventPreprocessor] = preprocessors[priority] ?? []
+        preprocessorsForThisPriority.append(preprocessor)
+        preprocessors[priority] = preprocessorsForThisPriority
     }
 
     /// Shares a shared state for the `EventHub` with data containing all the registered extensions
@@ -346,6 +348,34 @@ final class EventHub {
         }
 
         return 0
+    }
+
+    /// Pre-processes the provided event in priority order of the pre-processors
+    /// - Parameter event: The `Event` to be pre-processed
+    /// - Returns: The original `Event` after being fully pre-processed
+    private func preprocessEvent(_ event: Event) -> Event {
+        var preprocessedEvent = preprocessEvent(event, priority: .highest)
+        preprocessedEvent = preprocessEvent(preprocessedEvent, priority: .high)
+        preprocessedEvent = preprocessEvent(preprocessedEvent, priority: .normal)
+        preprocessedEvent = preprocessEvent(preprocessedEvent, priority: .low)
+        return preprocessEvent(preprocessedEvent, priority: .lowest)
+    }
+
+    /// Pre-processes the provided event for the given priority
+    /// The provided event is processed by all pre-processors with the given priority.
+    /// If there are no pre-processors for the given priority, the original event is returned.
+    /// - Parameters:
+    ///   - event: The `Event` to be pre-processed
+    ///   - priority: the `EventPreprocessorPriority`
+    /// - Returns: The original `Event` after being fully pre-processed
+    private func preprocessEvent(_ event: Event, priority: EventPreprocessorPriority) -> Event {
+        guard let processors = preprocessors[priority] else {
+            return event
+        }
+
+        return processors.reduce(event) { event, processor in
+            processor(event)
+        }
     }
 }
 

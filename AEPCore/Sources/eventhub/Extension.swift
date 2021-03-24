@@ -167,9 +167,13 @@ public extension Extension {
         runtime.stopEvents()
     }
 
-    /// Register a event preprocessor
-    /// - Parameter preprocessor: The `EventPreprocessor`
-    internal func registerPreprocessor(_ preprocessor: @escaping EventPreprocessor) {
-        EventHub.shared.registerPreprocessor(preprocessor)
+    /// Register a event preprocessor with the given priority
+    /// The priority provided governs the order in which the preprocessors will be called for a given event.
+    /// - Parameters:
+    ///   - preprocessor: The `EventPreprocessor` to register
+    ///   - priority: The `EventPreprocessorPriority` for the given preprocessor
+    ///
+    func registerPreprocessor(_ preprocessor: @escaping EventPreprocessor, priority: EventPreprocessorPriority) {
+        EventHub.shared.registerPreprocessor(preprocessor, priority: priority)
     }
 }

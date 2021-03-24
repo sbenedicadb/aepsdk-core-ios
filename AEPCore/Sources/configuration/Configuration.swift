@@ -41,7 +41,7 @@ class Configuration: Extension {
 
     /// Invoked when the Configuration extension has been registered by the `EventHub`, this results in the Configuration extension loading the first configuration for the SDK
     func onRegistered() {
-        registerPreprocessor(rulesEngine.process(event:))
+        registerPreprocessor(rulesEngine.process(event:), priority: .highest)
 
         registerListener(type: EventType.configuration, source: EventSource.requestContent, listener: receiveConfigurationRequest(event:))
         registerListener(type: EventType.lifecycle, source: EventSource.responseContent, listener: receiveLifecycleResponse(event:))
