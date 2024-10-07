@@ -64,6 +64,21 @@ public extension HttpConnection {
     /// This is protocol specific. For example, HTTP URLs could have headers like "last-modified", or "ETag" set.
     /// - Parameter forKey: the header key name sent in response when requesting a connection to the URL.
     func responseHttpHeader(forKey: String) -> String? {
-        return response?.allHeaderFields[forKey] as? String
+        return response?.lowercasedHeaders[forKey.lowercased()] as? String
+    }
+}
+
+extension HTTPURLResponse {
+    var lowercasedHeaders: [String: Any] {
+        let lowerKeysTuple = allHeaderFields.map { (key, value) in
+            guard let keyAsString = key.base as? String else {
+                // this case is not possible but the key must be unwrapped
+                // as a String in order to be lowercased
+                return (String(), String() as Any)
+            }
+            
+            return (keyAsString.lowercased(), value)
+        }
+        return Dictionary(uniqueKeysWithValues: lowerKeysTuple)
     }
 }
