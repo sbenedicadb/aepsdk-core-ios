@@ -15,7 +15,10 @@
 public extension MobileCore {
     /// Resets the SDK by shutting down and resetting the EventHub.
     static func resetSDK() {
-        EventHub.shared.shutdown()
-        EventHub.shared = EventHub()
+        EventHub.shared.shutdown() {
+            DispatchQueue.global().async() {
+                EventHub.shared = EventHub()
+            }
+        }
     }
 }

@@ -367,7 +367,7 @@ final class EventHub {
     }
 
     /// shut down the event hub, wait for the event queue to stop and unregister all the extensions
-    func shutdown() {
+    func shutdown(_ completion: () -> Void) {
         eventQueue.waitToStop()
         eventHubQueue.sync { [weak self] in
             guard let self = self else { return }
@@ -376,11 +376,10 @@ final class EventHub {
                 ext.unregisterExtension()
                 ext.shutdown()
             }
-        }
-        eventHubQueue.sync { [weak self] in
-            guard let self = self else { return }
+            
             // just wait
             self.registeredExtensions = ThreadSafeDictionary<String, ExtensionContainer>(identifier: "com.adobe.eventHub.registeredExtensions.queue")
+            completion()
         }
     }
 
