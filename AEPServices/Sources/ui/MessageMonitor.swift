@@ -12,9 +12,9 @@
 #if os(iOS)
     import Foundation
 
+    @available(iOSApplicationExtension, unavailable)
     class MessageMonitor: MessageMonitoring {
         private let LOG_PREFIX = "MessageMonitor"
-        private let isAppExtension = Bundle.main.bundleURL.pathExtension == "appex"
         private var isMsgDisplayed = false
         private let messageQueue = DispatchQueue(label: "com.adobe.uiService.messageMonitor.queue")
         private var displayedMessageId: UUID?
@@ -64,14 +64,11 @@
             // Change message monitor to display
             displayMessage()
             
-            // ensure this is not an app extension, as FullscreenMessage is not available in extensions
-            if !isAppExtension {
-                // if this is a FullscreenMessage, set the ID
-                if let fullscreenMessage = message as? FullscreenMessage {
-                    messageQueue.sync {
-                        // set this on message queue
-                        displayedMessageId = fullscreenMessage.id
-                    }
+            // if this is a FullscreenMessage, set the ID
+            if let fullscreenMessage = message as? FullscreenMessage {
+                messageQueue.sync {
+                    // set this on message queue
+                    displayedMessageId = fullscreenMessage.id
                 }
             }
 
@@ -88,13 +85,10 @@
                 return false
             }
             
-            // ensure this is not an app extension, as FullscreenMessage is not available in extensions
-            if !isAppExtension {
-                if let fullscreenMessage = message as? FullscreenMessage {
-                    if getDisplayedMessageId() != fullscreenMessage.id {
-                        Log.debug(label: self.LOG_PREFIX, "Call to dismiss the message failed. Its identifier doesn't match the currently displayed message.")
-                        return false
-                    }
+            if let fullscreenMessage = message as? FullscreenMessage {
+                if getDisplayedMessageId() != fullscreenMessage.id {
+                    Log.debug(label: self.LOG_PREFIX, "Call to dismiss the message failed. Its identifier doesn't match the currently displayed message.")
+                    return false
                 }
             }
             

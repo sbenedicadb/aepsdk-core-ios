@@ -14,6 +14,7 @@
 
     /// This protocol is used to monitor if a UI message is displayed.  Primarily it is used in conjunction with the MessageSetting.uiTakeover property to prevent multiple
     ///   messages with `uiTakeover` from being displayed at the same time.
+    @available(iOSApplicationExtension, unavailable)
     protocol MessageMonitoring {
         /// - Returns: `true` if a message is being displayed
         func isMessageDisplayed() -> Bool
