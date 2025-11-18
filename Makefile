@@ -34,7 +34,7 @@ endif
 
 TVOS_DEVICE_NAME ?= Apple TV
 # If OS version is not specified, uses the first device name match in the list of available simulators
-TVOS_VERSION ?= 
+TVOS_VERSION ?= 18.5
 ifeq ($(strip $(TVOS_VERSION)),)
 	TVOS_DESTINATION = "platform=tvOS Simulator,name=$(TVOS_DEVICE_NAME)"
 else
