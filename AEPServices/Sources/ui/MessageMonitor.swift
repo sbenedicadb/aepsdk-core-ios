@@ -79,7 +79,7 @@
             return dismiss(nil)
         }
         
-        internal func dismiss(_ message: Showable? = nil) -> Bool {
+        internal func dismiss(_ message: Showable?) -> Bool {
             if !isMessageDisplayed() {
                 Log.debug(label: self.LOG_PREFIX, "Message failed to be dismissed, nothing is currently displayed.")
                 return false
