@@ -69,6 +69,7 @@
 		21F79ABF24E71B03003204C3 /* IDParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F79ABD24E7144F003204C3 /* IDParserTests.swift */; };
 		21F79AC124E72204003204C3 /* V4MigratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F79AC024E72204003204C3 /* V4MigratorTests.swift */; };
 		21FE152024F03254008A82FF /* IdentityPublicAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FE151F24F03254008A82FF /* IdentityPublicAPITests.swift */; };
+		240379E02EEC904D009A68B4 /* FullscreenMessage+Translation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240379DF2EEC9044009A68B4 /* FullscreenMessage+Translation.swift */; };
 		241D9B352E71E8C800969B09 /* EventHistoryDatabaseMigrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241D9B342E71E8B800969B09 /* EventHistoryDatabaseMigrator.swift */; };
 		241D9B372E71EB0900969B09 /* FileManager+Directories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241D9B362E71EA8700969B09 /* FileManager+Directories.swift */; };
 		241D9B392E73429900969B09 /* EventHistoryConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241D9B382E73428D00969B09 /* EventHistoryConstants.swift */; };
@@ -848,6 +849,7 @@
 		21F79ABD24E7144F003204C3 /* IDParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDParserTests.swift; sourceTree = "<group>"; };
 		21F79AC024E72204003204C3 /* V4MigratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V4MigratorTests.swift; sourceTree = "<group>"; };
 		21FE151F24F03254008A82FF /* IdentityPublicAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityPublicAPITests.swift; sourceTree = "<group>"; };
+		240379DF2EEC9044009A68B4 /* FullscreenMessage+Translation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FullscreenMessage+Translation.swift"; sourceTree = "<group>"; };
 		241D9B342E71E8B800969B09 /* EventHistoryDatabaseMigrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHistoryDatabaseMigrator.swift; sourceTree = "<group>"; };
 		241D9B362E71EA8700969B09 /* FileManager+Directories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Directories.swift"; sourceTree = "<group>"; };
 		241D9B382E73428D00969B09 /* EventHistoryConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHistoryConstants.swift; sourceTree = "<group>"; };
@@ -2424,6 +2426,7 @@
 				92EEA5F5258933A600DBA3EE /* FullscreenMessageDelegate.swift */,
 				92EEA56F25885C1C00DBA3EE /* FullscreenMessage.swift */,
 				246FD07B26C2CDE500FD130B /* FullscreenMessage+FrameCalculation.swift */,
+				240379DF2EEC9044009A68B4 /* FullscreenMessage+Translation.swift */,
 				24D9D52D26AB788C002A441A /* FullscreenMessage+WKNavigationDelegate.swift */,
 				24D9D54B26AB797D002A441A /* FullscreenMessage+WKScriptMessageHandler.swift */,
 				78B36AB325CA1FCE00D6D25F /* FullscreenPresentable.swift */,
@@ -3782,6 +3785,7 @@
 				3F0397DB24BE5FF30019F095 /* NamedCollectionDataStore.swift in Sources */,
 				3F0397C524BE5FF30019F095 /* CacheEntry.swift in Sources */,
 				3F0397F524BE60910019F095 /* AtomicCounter.swift in Sources */,
+				240379E02EEC904D009A68B4 /* FullscreenMessage+Translation.swift in Sources */,
 				92F06BFC25B8F1FE004C1700 /* MessageMonitoring.swift in Sources */,
 				78B36AB425CA1FCE00D6D25F /* FullscreenPresentable.swift in Sources */,
 				3F0397DA24BE5FF30019F095 /* NamedCollectionProcessing.swift in Sources */,

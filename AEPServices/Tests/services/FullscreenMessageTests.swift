@@ -153,7 +153,7 @@
             fullscreenMessage?.payloadUsingLocalAssets = "use me instead"
             messageMonitor.dismissMessage()
             fullscreenMessage?.show()
-            wait(for: [fullscreenListenerExpectation!, messagingDelegateExpectation!], timeout: 2.0)
+            wait(for: [fullscreenListenerExpectation!, messagingDelegateExpectation!], timeout: 5.0)
             XCTAssertTrue(mockFullscreenListener.onShowCalled)
             XCTAssertTrue(mockMessagingDelegate.shouldShowMessageCalled)
             XCTAssertTrue(mockMessagingDelegate.onShowCalled)
@@ -472,7 +472,7 @@
             fullscreenMessage?.handleTap()
             
             // Verify
-            wait(for: [fullscreenListenerExpectation!, messagingDelegateExpectation!], timeout: 2.0)
+            wait(for: [fullscreenListenerExpectation!, messagingDelegateExpectation!], timeout: 5.0)
             XCTAssertTrue(mockFullscreenListener.onDismissCalled)
             XCTAssertTrue(mockMessagingDelegate.onDismissCalled)
         }

@@ -25,6 +25,11 @@
         private let TEMP_FILE_NAME = "temp"
         private let FIT_TO_CONTENT_HANDLER_NAME = "inAppContentHeightHandler"
         private let ANIMATION_DURATION = 0.3
+        
+        // MOB-24285
+        // for fullscreen messages, generate an ID which can be used to ensure that the only the currently
+        // displayed message can activate the dismissal code in the monitor when dismiss is called
+        let id = UUID()
 
         /// Assignable in the constructor, `settings` control the layout and behavior of the message
         @objc
@@ -47,6 +52,7 @@
         private var tempHtmlFile: URL?
         private(set) var transparentBackgroundView: UIView?
         private(set) var messageMonitor: MessageMonitoring
+        private var translationCompleted = false
 
         var loadingNavigation: WKNavigation?
         var messagingDelegate: MessagingDelegate? {
@@ -72,6 +78,56 @@
             self.isLocalImageUsed = isLocalImageUsed
             self.messageMonitor = messageMonitor
             self.settings = settings
+        }
+        
+        // MARK: - WebView Loading
+        
+        /// Loads the webview with the HTML payload
+        private func loadWebView(delegateControl: Bool) {
+            // create the webview
+            let wkWebView = self.getConfiguredWebView(newFrame: self.frameBeforeShow)
+
+            // save the HTML payload to a local file if the cached image is being used
+            var useTempHTML = false
+            var cacheFolderURL: URL?
+            let cacheFolder: URL? = self.fileManager.getCacheDirectoryPath()
+            if cacheFolder != nil {
+                cacheFolderURL = cacheFolder?.appendingPathComponent(self.DOWNLOAD_CACHE)
+                let tempHTMLFileName = "\(self.TEMP_FILE_NAME)_\(self.hash)"
+                self.tempHtmlFile = cacheFolderURL?.appendingPathComponent(tempHTMLFileName).appendingPathExtension(self.HTML_EXTENSION)
+
+                if self.isLocalImageUsed, let file = self.tempHtmlFile {
+                    // We have to use loadFileURL so we can allow read access to these image files in the cache but loadFileURL
+                    // expects a file URL and not the string representation of the HTML payload. As a workaround, we can write the
+                    // payload string to a temporary HTML file located at cachePath/adbdownloadcache/temp_[self.hash].html
+                    // and pass that file URL to loadFileURL.
+                    do {
+                        try FileManager.default.createDirectory(atPath: cacheFolderURL?.path ?? "", withIntermediateDirectories: true, attributes: nil)
+                        var tempHtml: Data?
+                        // if a payload that uses local assets is defined, use it. otherwise, use the default payload.
+                        if let localAssetsHtml = self.payloadUsingLocalAssets {
+                            tempHtml = localAssetsHtml.data(using: .utf8, allowLossyConversion: false)
+                        } else {
+                            tempHtml = self.payload.data(using: .utf8, allowLossyConversion: false)
+                        }
+                        try tempHtml?.write(to: file, options: .noFileProtection)
+                        useTempHTML = true
+                    } catch {
+                        Log.debug(label: self.LOG_PREFIX, "Failed to save the temporary HTML file for fullscreen message \(error)")
+                    }
+                }
+            }
+
+            // load the HTML string on WKWebView. If we are using the cached images, then use
+            // loadFileURL:allowingReadAccessToURL: to load the html from local file, which will give us the correct
+            // permission to read cached files
+            if useTempHTML {
+                self.loadingNavigation = wkWebView.loadFileURL(URL(fileURLWithPath: self.tempHtmlFile?.path ?? ""), allowingReadAccessTo: URL(fileURLWithPath: cacheFolder?.path ?? ""))
+            } else {
+                self.loadingNavigation = wkWebView.loadHTMLString(self.payload, baseURL: Bundle.main.bundleURL)
+            }
+
+            self.handleShouldShow(webview: wkWebView, delegateControl: delegateControl)
         }
 
         /// Call this API to hide the fullscreen message.
@@ -147,50 +203,23 @@
                     self.observerSet = true
                 }
 
-                // create the webview
-                let wkWebView = self.getConfiguredWebView(newFrame: self.frameBeforeShow)
-
-                // save the HTML payload to a local file if the cached image is being used
-                var useTempHTML = false
-                var cacheFolderURL: URL?
-                let cacheFolder: URL? = self.fileManager.getCacheDirectoryPath()
-                if cacheFolder != nil {
-                    cacheFolderURL = cacheFolder?.appendingPathComponent(self.DOWNLOAD_CACHE)
-                    let tempHTMLFileName = "\(self.TEMP_FILE_NAME)_\(self.hash)"
-                    self.tempHtmlFile = cacheFolderURL?.appendingPathComponent(tempHTMLFileName).appendingPathExtension(self.HTML_EXTENSION)
-
-                    if self.isLocalImageUsed, let file = self.tempHtmlFile {
-                        // We have to use loadFileURL so we can allow read access to these image files in the cache but loadFileURL
-                        // expects a file URL and not the string representation of the HTML payload. As a workaround, we can write the
-                        // payload string to a temporary HTML file located at cachePath/adbdownloadcache/temp_[self.hash].html
-                        // and pass that file URL to loadFileURL.
-                        do {
-                            try FileManager.default.createDirectory(atPath: cacheFolderURL?.path ?? "", withIntermediateDirectories: true, attributes: nil)
-                            var tempHtml: Data?
-                            // if a payload that uses local assets is defined, use it. otherwise, use the default payload.
-                            if let localAssetsHtml = self.payloadUsingLocalAssets {
-                                tempHtml = localAssetsHtml.data(using: .utf8, allowLossyConversion: false)
-                            } else {
-                                tempHtml = self.payload.data(using: .utf8, allowLossyConversion: false)
-                            }
-                            try tempHtml?.write(to: file, options: .noFileProtection)
-                            useTempHTML = true
-                        } catch {
-                            Log.debug(label: self.LOG_PREFIX, "Failed to save the temporary HTML file for fullscreen message \(error)")
+                // Translate HTML content before loading if iOS 18+ and not already translated
+                if #available(iOS 18.0, *), !self.translationCompleted {
+                    Task { [weak self] in
+                        guard let self = self else { return }
+                        
+                        await self.translatePayloadIfNeeded()
+                        self.translationCompleted = true
+                        
+                        // After translation completes, load the webview on main thread
+                        await MainActor.run {
+                            self.loadWebView(delegateControl: delegateControl)
                         }
                     }
-                }
-
-                // load the HTML string on WKWebView. If we are using the cached images, then use
-                // loadFileURL:allowingReadAccessToURL: to load the html from local file, which will give us the correct
-                // permission to read cached files
-                if useTempHTML {
-                    self.loadingNavigation = wkWebView.loadFileURL(URL(fileURLWithPath: self.tempHtmlFile?.path ?? ""), allowingReadAccessTo: URL(fileURLWithPath: cacheFolder?.path ?? ""))
                 } else {
-                    self.loadingNavigation = wkWebView.loadHTMLString(self.payload, baseURL: Bundle.main.bundleURL)
+                    // No translation needed, load immediately
+                    self.loadWebView(delegateControl: delegateControl)
                 }
-
-                self.handleShouldShow(webview: wkWebView, delegateControl: delegateControl)
             }
         }
 
@@ -334,7 +363,7 @@
             let webViewConfiguration = WKWebViewConfiguration()
 
             // set the callback for auto-resizing if fitToContent is set in MessageSettings
-            if self.settings?.fitToContent == true,               
+            if self.settings?.fitToContent == true,
                self.scriptHandlers[FIT_TO_CONTENT_HANDLER_NAME] == nil {
                 self.scriptHandlers[FIT_TO_CONTENT_HANDLER_NAME] = handleAutoResize(_:)
             }
